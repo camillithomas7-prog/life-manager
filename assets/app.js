@@ -1,3 +1,43 @@
+// ============= AUTO-UPDATE CHECK =============
+// Confronta versione sul server con quella in localStorage. Se diversa,
+// pulisce TUTTE le cache (SW + browser) e ricarica.
+async function checkAppVersion() {
+  try {
+    const r = await fetch('version.php?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const data = await r.json();
+    const serverV = String(data.version || '');
+    const localV = localStorage.getItem('lm_app_version') || '';
+    if (!localV) {
+      localStorage.setItem('lm_app_version', serverV);
+      return;
+    }
+    if (serverV && serverV !== localV) {
+      console.log('[AutoUpdate] Nuova versione:', localV, '→', serverV);
+      localStorage.setItem('lm_app_version', serverV);
+      // Pulisci tutte le cache
+      try {
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.update()));
+        }
+      } catch (e) {}
+      // Reload bypass cache
+      location.reload();
+    }
+  } catch (e) { /* offline → ignora */ }
+}
+checkAppVersion();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkAppVersion();
+});
+// Check anche ogni 5 minuti se l'app resta aperta
+setInterval(checkAppVersion, 5 * 60 * 1000);
+
 // ============= STATE =============
 const state = {
   view: 'today',

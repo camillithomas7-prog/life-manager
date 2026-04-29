@@ -1,4 +1,4 @@
-const CACHE = 'lm-v7';
+const CACHE = 'lm-v8';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/assets/icon-192.png',
@@ -26,8 +26,8 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
-  // API: network-first, mai cache (sennò vedi dati vecchi)
-  if (url.pathname.endsWith('/api.php')) {
+  // API e version check: network-only, mai cache
+  if (url.pathname.endsWith('/api.php') || url.pathname.endsWith('/version.php')) {
     e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ ok: false, error: 'offline' }), { headers: { 'Content-Type': 'application/json' } })));
     return;
   }
