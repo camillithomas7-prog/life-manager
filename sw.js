@@ -1,4 +1,4 @@
-const CACHE = 'lm-v5';
+const CACHE = 'lm-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
