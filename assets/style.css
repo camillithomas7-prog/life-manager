@@ -288,30 +288,38 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   margin-bottom: 8px;
 }
 .task-check {
-  width: 20px; height: 20px;
-  border: 2px solid var(--border-strong);
-  border-radius: 6px;
+  width: 24px; height: 24px;
+  border: 2px solid #d1d5db;
+  border-radius: 7px;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 0;
   cursor: pointer;
   position: relative;
   transition: all 0.15s;
+  background: #fff;
 }
-.task-check:hover { border-color: var(--primary); }
-.task-check.done {
-  background: var(--success);
-  border-color: var(--success);
-}
-.task-check.done::after {
+.task-check::after {
   content: "✓";
-  color: #fff;
+  color: #d1d5db;
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.15s;
+}
+.task-check:hover { border-color: var(--success); }
+.task-check:hover::after { color: var(--success); }
+.task-check.done {
+  background: var(--success);
+  border-color: var(--success);
+}
+.task-check.done::after { color: #fff; }
+@media (hover: none) {
+  .task-check::after { color: #d1d5db; }
+  .task-check.done::after { color: #fff; }
 }
 .task-body { flex: 1; min-width: 0; }
 .task-title {
@@ -361,17 +369,26 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
   .project-actions .icon-btn { opacity: 1; }
 }
 .icon-btn {
-  width: 28px; height: 28px;
-  border-radius: 6px;
-  display: flex;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  font-size: 14px;
+  color: #6b7280;
+  font-size: 15px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
-.icon-btn:hover { background: var(--surface-2); color: var(--text); }
-.icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+.icon-btn:hover { background: var(--primary-soft); color: var(--primary); border-color: #c7d2fe; }
+.icon-btn.danger { color: var(--danger); background: var(--danger-soft); }
+.icon-btn.danger:hover { background: #fee2e2; border-color: #fca5a5; }
+
+/* Su touch: stato "premuto" visivo */
+@media (hover: none) {
+  .icon-btn:active { transform: scale(0.92); }
+}
 
 /* ======== ROUTINES ======== */
 .routine-list { display: flex; flex-direction: column; gap: 6px; }

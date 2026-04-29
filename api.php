@@ -243,8 +243,10 @@ try {
       $r->execute([$USER_ID, $today]); $events_upcoming = $r->fetchAll();
 
       $r = $db->prepare("SELECT t.*, p.name as project_name, p.color FROM tasks t LEFT JOIN projects p ON t.project_id=p.id WHERE t.user_id=? AND t.status!='done' ORDER BY
+        CASE WHEN t.scheduled_date=? THEN 0 ELSE 1 END,
+        t.scheduled_start ASC,
         CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END, t.due_date ASC, t.priority ASC LIMIT 8");
-      $r->execute([$USER_ID]); $top_tasks = $r->fetchAll();
+      $r->execute([$USER_ID, $today]); $top_tasks = $r->fetchAll();
 
       $r = $db->prepare("SELECT * FROM projects WHERE user_id=? AND archived=0 AND status='attivo' ORDER BY priority ASC, updated_at DESC LIMIT 6");
       $r->execute([$USER_ID]); $top_projects = $r->fetchAll();

@@ -389,7 +389,10 @@ async function loadToday() {
           <span class="priority-badge priority-${t.priority}">P${t.priority}</span>
         </div>
       </div>
-      <div class="task-actions"><button class="icon-btn" onclick="openTaskModal(${t.id})">✎</button></div>
+      <div class="task-actions">
+        <button class="icon-btn" onclick="openTaskModal(${t.id})">✎</button>
+        <button class="icon-btn danger" onclick="deleteTask(${t.id})">🗑</button>
+      </div>
     </div>
   `).join('') : '<div class="empty">Tutto pianificato 🎯</div>';
 }
@@ -674,7 +677,11 @@ async function loadTasks() {
 }
 
 async function toggleTask(id) {
-  await api('task_toggle', { id }, 'POST');
+  const r = await api('task_toggle', { id }, 'POST');
+  if (r.ok) {
+    if (r.status === 'done') toast('✓ Completata · spostata in "Completate"');
+    else toast('Riportata in "Da fare"');
+  }
   loadView(state.view);
 }
 
