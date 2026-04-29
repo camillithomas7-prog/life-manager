@@ -3,7 +3,7 @@
 // 1. Disinstalla TUTTI i service worker
 // 2. Svuota TUTTE le cache
 // 3. Hard reload bypass cache
-const APP_BUILD = 'v12';  // visualizzato in UI, aggiornato ad ogni release
+const APP_BUILD = 'v13';  // visualizzato in UI, aggiornato ad ogni release
 
 async function checkAppVersion() {
   try {

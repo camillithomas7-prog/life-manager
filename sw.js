@@ -1,4 +1,4 @@
-const CACHE = 'lm-v12';
+const CACHE = 'lm-v13';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/assets/icon-192.png',
