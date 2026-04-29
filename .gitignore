@@ -1,0 +1,26 @@
+# Database e dati locali (ogni installazione ha i suoi)
+data/life.db
+data/life.db-journal
+data/verifications.log
+data/dev_mode
+
+# Log
+*.log
+/tmp/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# PHP
+vendor/
+composer.lock
+
+# Backup
+*.bak
+*.backup
+*.old

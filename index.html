@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Life Manager</title>
+<meta name="theme-color" content="#f7f6f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Life Manager">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="stylesheet" href="assets/style.css?v=5">
+</head>
+<body>
+
+<!-- ============= AUTH SCREEN ============= -->
+<div id="authScreen" class="auth-screen hidden">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">●</div>
+      <h1>Life Manager</h1>
+      <p class="muted">Il tuo pannello personale di organizzazione.</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-auth-tab="login">Accedi</button>
+      <button class="auth-tab" data-auth-tab="register">Registrati</button>
+    </div>
+
+    <!-- LOGIN -->
+    <form id="loginForm" class="auth-form">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required autocomplete="email" placeholder="tu@esempio.it">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <div class="auth-error hidden" id="loginErr"></div>
+      <button type="submit" class="btn primary auth-btn">Accedi</button>
+    </form>
+
+    <!-- REGISTER -->
+    <form id="registerForm" class="auth-form hidden">
+      <div class="field">
+        <label>Nome</label>
+        <input name="name" required placeholder="Come ti chiami">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required autocomplete="email" placeholder="tu@esempio.it">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required minlength="6" autocomplete="new-password" placeholder="Almeno 6 caratteri">
+      </div>
+      <div class="auth-error hidden" id="registerErr"></div>
+      <button type="submit" class="btn primary auth-btn">Crea il mio account</button>
+      <p class="auth-footer-note">Riceverai un link di verifica via email.</p>
+    </form>
+
+    <!-- VERIFICA -->
+    <div id="verifyPending" class="auth-form hidden">
+      <div class="auth-info">
+        <div class="auth-info-icon">✉️</div>
+        <h3>Verifica la tua email</h3>
+        <p>Ti abbiamo inviato un link a <b id="verifyEmail">—</b>. Clicca sul link per attivare l'account.</p>
+        <p class="muted" style="font-size:12px;margin-top:14px" id="verifyLocalLink"></p>
+      </div>
+      <button class="btn ghost auth-btn" onclick="showAuthTab('login')">Torna al login</button>
+    </div>
+  </div>
+  <p class="auth-footer">Life Manager · gestionale personale</p>
+</div>
+
+<!-- ============= APP ============= -->
+<div id="app" class="hidden">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">●</div>
+    <div>
+      <div class="brand-title">Life Manager</div>
+      <div class="brand-sub" id="todayLabel">—</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a class="nav-item active" data-view="today"><span class="nav-icon">☀</span><span>Oggi</span></a>
+    <a class="nav-item" data-view="schedule"><span class="nav-icon">⊟</span><span>Ritmi</span></a>
+    <a class="nav-item" data-view="tasks"><span class="nav-icon">✓</span><span>Attività</span></a>
+    <a class="nav-item" data-view="projects"><span class="nav-icon">▦</span><span>Progetti</span></a>
+    <div class="nav-divider"></div>
+    <a class="nav-item" data-view="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
+    <a class="nav-item" data-view="routines"><span class="nav-icon">↻</span><span>Routine</span></a>
+    <a class="nav-item" data-view="calendar"><span class="nav-icon">▤</span><span>Calendario</span></a>
+    <a class="nav-item" data-view="goals"><span class="nav-icon">◎</span><span>Obiettivi</span></a>
+    <a class="nav-item" data-view="finances"><span class="nav-icon">€</span><span>Bilancio</span></a>
+    <a class="nav-item" data-view="notes"><span class="nav-icon">✎</span><span>Note</span></a>
+    <div class="nav-divider"></div>
+    <a class="nav-item" data-view="profile"><span class="nav-icon">◉</span><span>Profilo</span></a>
+    <a class="nav-item nav-admin hidden" data-view="admin"><span class="nav-icon">⚙</span><span>Admin</span></a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar" id="userAvatar">T</div>
+      <div style="flex:1;min-width:0">
+        <div class="user-name" id="userName">—</div>
+        <div class="user-email" id="userEmail">—</div>
+      </div>
+      <button class="icon-btn" onclick="logout()" title="Esci">⏻</button>
+    </div>
+  </div>
+</aside>
+
+<!-- TOP BAR (mobile only) -->
+<header class="topbar">
+  <div class="topbar-title" id="topbarTitle">Oggi</div>
+  <button class="topbar-btn" onclick="openMoreSheet()">☰</button>
+</header>
+
+<main class="main">
+
+  <!-- OGGI -->
+  <section class="view" data-view="today">
+    <header class="view-head">
+      <div>
+        <h1 id="todayTitle">Programma di oggi</h1>
+        <p class="muted" id="todaySubtitle">—</p>
+      </div>
+      <div class="view-actions">
+        <button class="btn ghost icon-only" onclick="changeTodayDate(-1)">‹</button>
+        <button class="btn ghost" onclick="changeTodayDate(0)">Oggi</button>
+        <button class="btn ghost icon-only" onclick="changeTodayDate(1)">›</button>
+        <button class="btn primary" onclick="planDay()"><span class="hide-sm">⚡</span> Pianifica</button>
+      </div>
+    </header>
+
+    <div class="kpi-grid" id="todayKpi"></div>
+
+    <div class="grid-today">
+      <div class="card">
+        <div class="card-head">
+          <h3>Cronologia giornata</h3>
+          <button class="btn ghost sm" onclick="clearDayPlan()">Svuota</button>
+        </div>
+        <div id="todayTimeline" class="timeline"></div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-head"><h3>Routine</h3></div>
+          <div id="todayRoutines" class="routine-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Da pianificare</h3><span class="muted" id="unscheduledCount">—</span></div>
+          <div id="unscheduledList" class="task-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RITMI -->
+  <section class="view hidden" data-view="schedule">
+    <header class="view-head">
+      <div>
+        <h1>Ritmi della settimana</h1>
+        <p class="muted">La tua giornata tipo. Tocca un blocco per modificarlo.</p>
+      </div>
+      <div class="view-actions">
+        <button class="btn ghost" onclick="openCopyDayModal()">⎘ Copia</button>
+        <button class="btn primary" onclick="openBlockModal()">+ Blocco</button>
+      </div>
+    </header>
+    <div class="schedule-legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#94a3b8"></span>Sonno</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Sport</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#10b981"></span>Pasto</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#4f46e5"></span>Lavoro</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>Personale</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#06b6d4"></span>Libero</span>
+    </div>
+    <!-- Mobile: day picker -->
+    <div class="day-picker mobile-only" id="dayPicker"></div>
+    <div id="weekGrid" class="week-grid desktop-only"></div>
+    <div id="dayList" class="day-list mobile-only"></div>
+  </section>
+
+  <!-- ATTIVITÀ -->
+  <section class="view hidden" data-view="tasks">
+    <header class="view-head">
+      <div><h1>Attività</h1><p class="muted">Concentrati su ciò che conta oggi.</p></div>
+      <div class="view-actions"><button class="btn primary" onclick="openTaskModal()">+ Nuova</button></div>
+    </header>
+    <div class="filters">
+      <button class="chip active" data-tfilter="open">Da fare</button>
+      <button class="chip" data-tfilter="today">Oggi</button>
+      <button class="chip" data-tfilter="overdue">In ritardo</button>
+      <button class="chip" data-tfilter="done">Completate</button>
+    </div>
+    <div id="tasksList" class="task-list-large"></div>
+  </section>
+
+  <!-- PROGETTI -->
+  <section class="view hidden" data-view="projects">
+    <header class="view-head">
+      <div><h1>Progetti</h1><p class="muted">Tutto in un colpo d'occhio.</p></div>
+      <div class="view-actions"><button class="btn primary" onclick="openProjectModal()">+ Nuovo</button></div>
+    </header>
+    <div class="filters">
+      <button class="chip active" data-filter="all">Tutti</button>
+      <button class="chip" data-filter="attivo">Attivi</button>
+      <button class="chip" data-filter="pausa">In pausa</button>
+      <button class="chip" data-filter="completato">Completati</button>
+    </div>
+    <div id="projectsGrid" class="projects-grid"></div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="view hidden" data-view="dashboard">
+    <header class="view-head">
+      <div><h1 id="dashHello">Ciao</h1><p class="muted" id="dashSubtitle">—</p></div>
+      <div class="view-actions"><button class="btn primary" onclick="openTaskModal()">+ Attività</button></div>
+    </header>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h3>Attività in evidenza</h3><a class="link" data-view="tasks">Tutte →</a></div>
+        <div id="dashTasks" class="task-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Routine di oggi</h3><a class="link" data-view="routines">Tutte →</a></div>
+        <div id="dashRoutines" class="routine-list"></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h3>Progetti attivi</h3><a class="link" data-view="projects">Tutti →</a></div>
+        <div id="dashProjects" class="project-mini-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Prossimi eventi</h3><a class="link" data-view="calendar">Calendario →</a></div>
+        <div id="dashEvents" class="event-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROUTINE -->
+  <section class="view hidden" data-view="routines">
+    <header class="view-head">
+      <div><h1>Routine</h1><p class="muted">Le abitudini che ti portano avanti.</p></div>
+      <div class="view-actions"><button class="btn primary" onclick="openRoutineModal()">+ Nuova</button></div>
+    </header>
+    <div id="routinesList" class="routines-grid"></div>
+  </section>
+
+  <!-- CALENDARIO -->
+  <section class="view hidden" data-view="calendar">
+    <header class="view-head">
+      <div><h1>Calendario</h1><p class="muted" id="calSubtitle">—</p></div>
+      <div class="view-actions">
+        <button class="btn ghost icon-only" onclick="changeMonth(-1)">‹</button>
+        <button class="btn ghost" onclick="changeMonth(0)">Oggi</button>
+        <button class="btn ghost icon-only" onclick="changeMonth(1)">›</button>
+        <button class="btn primary" onclick="openEventModal()">+ Evento</button>
+      </div>
+    </header>
+    <div id="calendarGrid" class="calendar-grid"></div>
+    <div class="card mt-24">
+      <h3>Eventi del mese</h3>
+      <div id="eventsList" class="event-list"></div>
+    </div>
+  </section>
+
+  <!-- OBIETTIVI -->
+  <section class="view hidden" data-view="goals">
+    <header class="view-head">
+      <div><h1>Obiettivi</h1><p class="muted">Imposta la rotta. Misura i progressi.</p></div>
+      <div class="view-actions"><button class="btn primary" onclick="openGoalModal()">+ Nuovo</button></div>
+    </header>
+    <div id="goalsList" class="goals-grid"></div>
+  </section>
+
+  <!-- BILANCIO -->
+  <section class="view hidden" data-view="finances">
+    <header class="view-head">
+      <div><h1>Bilancio</h1><p class="muted" id="finSubtitle">—</p></div>
+      <div class="view-actions">
+        <button class="btn ghost icon-only" onclick="changeFinMonth(-1)">‹</button>
+        <button class="btn ghost" onclick="changeFinMonth(0)">Oggi</button>
+        <button class="btn ghost icon-only" onclick="changeFinMonth(1)">›</button>
+        <button class="btn primary" onclick="openFinanceModal()">+ Movimento</button>
+      </div>
+    </header>
+    <div class="kpi-grid" id="finKpi"></div>
+    <div class="card">
+      <h3>Movimenti del mese</h3>
+      <div id="financesList" class="finance-list"></div>
+    </div>
+  </section>
+
+  <!-- NOTE -->
+  <section class="view hidden" data-view="notes">
+    <header class="view-head">
+      <div><h1>Note</h1><p class="muted">Idee e appunti veloci.</p></div>
+      <div class="view-actions"><button class="btn primary" onclick="openNoteModal()">+ Nuova</button></div>
+    </header>
+    <div id="notesGrid" class="notes-grid"></div>
+  </section>
+
+  <!-- PROFILO -->
+  <section class="view hidden" data-view="profile">
+    <header class="view-head">
+      <div><h1>Profilo</h1><p class="muted">Il tuo account.</p></div>
+    </header>
+    <div class="card">
+      <h3>Account</h3>
+      <div id="profileInfo"></div>
+    </div>
+    <div class="card">
+      <h3>Cambia password</h3>
+      <form id="changePwdForm">
+        <div class="field">
+          <label>Password attuale</label>
+          <input type="password" name="current" required>
+        </div>
+        <div class="field">
+          <label>Nuova password</label>
+          <input type="password" name="new" required minlength="6">
+        </div>
+        <button type="submit" class="btn primary">Aggiorna password</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Sessione</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:14px">Esci dal tuo account su questo dispositivo.</p>
+      <button class="btn danger" onclick="logout()">Esci dal mio account</button>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section class="view hidden" data-view="admin">
+    <header class="view-head">
+      <div><h1>Admin · Utenti</h1><p class="muted">Gestione utenti registrati.</p></div>
+    </header>
+    <div class="card">
+      <div id="adminUsersList"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav class="bottom-nav">
+  <a class="bn-item active" data-view="today"><span class="bn-icon">☀</span><span class="bn-label">Oggi</span></a>
+  <a class="bn-item" data-view="tasks"><span class="bn-icon">✓</span><span class="bn-label">Attività</span></a>
+  <a class="bn-item" data-view="schedule"><span class="bn-icon">⊟</span><span class="bn-label">Ritmi</span></a>
+  <a class="bn-item" data-view="projects"><span class="bn-icon">▦</span><span class="bn-label">Progetti</span></a>
+  <a class="bn-item" onclick="openMoreSheet()"><span class="bn-icon">☰</span><span class="bn-label">Altro</span></a>
+</nav>
+
+<!-- MORE SHEET (mobile) -->
+<div id="moreSheet" class="sheet-backdrop hidden" onclick="if(event.target===this)closeMoreSheet()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-list">
+      <a class="sheet-item" data-view="dashboard"><span class="sheet-icon">⌂</span>Dashboard</a>
+      <a class="sheet-item" data-view="routines"><span class="sheet-icon">↻</span>Routine</a>
+      <a class="sheet-item" data-view="calendar"><span class="sheet-icon">▤</span>Calendario</a>
+      <a class="sheet-item" data-view="goals"><span class="sheet-icon">◎</span>Obiettivi</a>
+      <a class="sheet-item" data-view="finances"><span class="sheet-icon">€</span>Bilancio</a>
+      <a class="sheet-item" data-view="notes"><span class="sheet-icon">✎</span>Note</a>
+      <a class="sheet-item" data-view="profile"><span class="sheet-icon">◉</span>Profilo</a>
+      <a class="sheet-item nav-admin hidden" data-view="admin"><span class="sheet-icon">⚙</span>Admin</a>
+      <a class="sheet-item sheet-logout" onclick="logout()"><span class="sheet-icon">⏻</span>Esci</a>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop hidden" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">—</h3>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+</div><!-- /#app -->
+
+<script src="assets/app.js?v=5"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
