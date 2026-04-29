@@ -1,6 +1,10 @@
-// ============= AUTO-UPDATE CHECK =============
-// Confronta versione sul server con quella in localStorage. Se diversa,
-// pulisce TUTTE le cache (SW + browser) e ricarica.
+// ============= AUTO-UPDATE CHECK (kill-switch) =============
+// Confronta versione sul server con quella in localStorage. Se diversa:
+// 1. Disinstalla TUTTI i service worker
+// 2. Svuota TUTTE le cache
+// 3. Hard reload bypass cache
+const APP_BUILD = 'v11';  // visualizzato in UI, aggiornato ad ogni release
+
 async function checkAppVersion() {
   try {
     const r = await fetch('version.php?t=' + Date.now(), { cache: 'no-store' });
@@ -13,21 +17,25 @@ async function checkAppVersion() {
       return;
     }
     if (serverV && serverV !== localV) {
-      console.log('[AutoUpdate] Nuova versione:', localV, '→', serverV);
+      console.log('[AutoUpdate] Nuova versione rilevata:', localV, '→', serverV);
       localStorage.setItem('lm_app_version', serverV);
-      // Pulisci tutte le cache
+      // Kill switch: pulisci tutto e ricarica
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {}
       try {
         if (window.caches) {
           const keys = await caches.keys();
           await Promise.all(keys.map(k => caches.delete(k)));
         }
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.update()));
-        }
       } catch (e) {}
-      // Reload bypass cache
-      location.reload();
+      // Hard reload con cache bust nell'URL
+      const url = new URL(location.href);
+      url.searchParams.set('_v', serverV);
+      location.replace(url.toString());
     }
   } catch (e) { /* offline → ignora */ }
 }
@@ -35,8 +43,17 @@ checkAppVersion();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') checkAppVersion();
 });
-// Check anche ogni 5 minuti se l'app resta aperta
-setInterval(checkAppVersion, 5 * 60 * 1000);
+setInterval(checkAppVersion, 60 * 1000); // ogni minuto
+
+// Banner versione visibile (debug rapido)
+window.addEventListener('DOMContentLoaded', () => {
+  const b = document.createElement('div');
+  b.id = 'versionBadge';
+  b.textContent = APP_BUILD;
+  b.title = 'Versione corrente — tocca per ricaricare';
+  b.onclick = () => { localStorage.removeItem('lm_app_version'); location.reload(); };
+  document.body.appendChild(b);
+});
 
 // ============= STATE =============
 const state = {
