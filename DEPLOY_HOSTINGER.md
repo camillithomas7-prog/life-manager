@@ -1,235 +1,71 @@
-# Deploy su Hostinger
+# Deploy su Hostinger — Guida rapida
 
-## 1. Carica i file
+## Step 1 — Crea il database MySQL
 
-Carica tutto il contenuto di questo repo (escluso `data/`) nella cartella `public_html/` o in una sottocartella (es. `public_html/life/`).
+Pannello Hostinger → **Database → Database MySQL** → "Create".
+Annota: nome DB, utente, password (host = `localhost`).
 
-## 2. Crea il database MySQL su Hostinger
+## Step 2 — Carica i file sul server
 
-Pannello Hostinger → **Database → Database MySQL** → crea database e utente. Annota:
-- DB name (es. `u123_lifemanager`)
-- DB user (es. `u123_lifeadmin`)
-- DB password
-- DB host (di solito `localhost` o `127.0.0.1`)
+**Opzione A (consigliata): Git da Hostinger**
 
-## 3. Importa lo schema
+Hostinger → **Website → Git** → Connect repository:
+- Repository: `https://github.com/camillithomas7-prog/life-manager.git`
+- Branch: `main`
+- Install path: `/public_html` (o sottocartella, es. `/public_html/life`)
 
-Hostinger → **phpMyAdmin** → seleziona il DB appena creato → tab **SQL** → incolla:
+**Opzione B: File Manager / FTP**
 
-```sql
-CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  name VARCHAR(120),
-  email_verified TINYINT DEFAULT 0,
-  verification_token VARCHAR(120),
-  reset_token VARCHAR(120),
-  reset_expires DATETIME,
-  is_admin TINYINT DEFAULT 0,
-  active TINYINT DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  last_login DATETIME
-);
+Scarica lo ZIP da GitHub → estrai → carica via File Manager nella root del sito (`public_html/`).
 
-CREATE TABLE IF NOT EXISTS sessions (
-  token VARCHAR(80) PRIMARY KEY,
-  user_id INT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
-  user_agent VARCHAR(500),
-  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+## Step 3 — Esegui l'installer
 
-CREATE TABLE IF NOT EXISTS projects (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  category VARCHAR(80),
-  status VARCHAR(20) DEFAULT 'attivo',
-  priority INT DEFAULT 3,
-  path VARCHAR(500),
-  url VARCHAR(500),
-  description TEXT,
-  next_action VARCHAR(500),
-  revenue DECIMAL(12,2) DEFAULT 0,
-  cost DECIMAL(12,2) DEFAULT 0,
-  color VARCHAR(20) DEFAULT '#6366f1',
-  archived TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
+Apri nel browser:
 
-CREATE TABLE IF NOT EXISTS tasks (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  project_id INT,
-  title VARCHAR(255) NOT NULL,
-  notes TEXT,
-  priority INT DEFAULT 3,
-  status VARCHAR(20) DEFAULT 'todo',
-  due_date DATE,
-  completed_at DATETIME,
-  estimated_minutes INT DEFAULT 30,
-  scheduled_date DATE,
-  scheduled_start VARCHAR(10),
-  scheduled_end VARCHAR(10),
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS routines (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  icon VARCHAR(10) DEFAULT '✓',
-  frequency VARCHAR(20) DEFAULT 'daily',
-  time VARCHAR(10),
-  category VARCHAR(80),
-  active TINYINT DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS routine_logs (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  routine_id INT NOT NULL,
-  user_id INT,
-  date DATE NOT NULL,
-  done TINYINT DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_routine_date (routine_id, date),
-  FOREIGN KEY(routine_id) REFERENCES routines(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS events (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  start_date DATE NOT NULL,
-  start_time VARCHAR(10),
-  end_date DATE,
-  end_time VARCHAR(10),
-  category VARCHAR(80),
-  project_id INT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS notes (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  content TEXT,
-  tag VARCHAR(80),
-  pinned TINYINT DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS goals (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  target_value DECIMAL(14,2),
-  current_value DECIMAL(14,2) DEFAULT 0,
-  unit VARCHAR(40),
-  deadline DATE,
-  category VARCHAR(80),
-  status VARCHAR(20) DEFAULT 'attivo',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS finances (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  type VARCHAR(20) NOT NULL,
-  amount DECIMAL(12,2) NOT NULL,
-  description VARCHAR(500),
-  category VARCHAR(80),
-  project_id INT,
-  date DATE NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS schedule_blocks (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  weekday INT NOT NULL,
-  start_time VARCHAR(10) NOT NULL,
-  end_time VARCHAR(10) NOT NULL,
-  type VARCHAR(20) NOT NULL,
-  label VARCHAR(255) NOT NULL,
-  color VARCHAR(20) DEFAULT '#6366f1',
-  notes TEXT,
-  active TINYINT DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user (user_id)
-);
+```
+https://aquamarine-dogfish-804095.hostingersite.com/install.php
 ```
 
-## 4. Configura le credenziali
+Compila il form:
+- **Host**: `localhost`
+- **Nome DB**: `u749757264_applavoro`
+- **Utente DB**: `u749757264_applavoro`
+- **Password DB**: la tua password
+- **Account admin**: nome, email, password (questo sarà il tuo account)
+- **Verifica email automatica**: ✓ tienilo attivo finché non configuri SMTP
 
-Crea il file `config.php` nella root del progetto sul server (non versionato in git):
+Click **Installa**. L'installer:
+1. Crea tutte le tabelle MySQL
+2. Crea il tuo account admin (verificato)
+3. Pre-popola la settimana tipo (palestra 7:30-9, lavoro 9:30-13 + 14-18)
+4. Scrive `config.php` (mai versionato in git)
 
-```php
-<?php
-return [
-  'db_driver' => 'mysql',
-  'db_host'   => 'localhost',     // o quello fornito da Hostinger
-  'db_name'   => 'u123_lifemanager',
-  'db_user'   => 'u123_lifeadmin',
-  'db_pass'   => 'LA_PASSWORD',
-  'smtp_host' => 'smtp.hostinger.com',
-  'smtp_user' => 'noreply@tuodominio.it',
-  'smtp_pass' => 'PASSWORD_EMAIL',
-  'app_url'   => 'https://tuodominio.it',
-];
+## Step 4 — Sicurezza
+
+Una volta completato, **elimina `install.php`** dal server (File Manager Hostinger → tasto destro → Delete). L'installer si auto-protegge se `config.php` esiste già, ma meglio rimuoverlo.
+
+## Step 5 — Apri l'app
+
+```
+https://aquamarine-dogfish-804095.hostingersite.com/
 ```
 
-## 5. Modifica `api.php` per usare MySQL
+Login con l'email/password admin. Dalla home può registrarsi chiunque (con auto-verify attivo possono accedere subito; con auto-verify disattivato ricevono link verifica via mail).
 
-Sostituisci la riga di connessione PDO all'inizio di `api.php`:
+## Step 6 (opzionale) — Dominio custom + SMTP
 
-```php
-// Prima (SQLite locale):
-$db = new PDO('sqlite:' . __DIR__ . '/data/life.db');
+- **Dominio**: Hostinger → "Domains" → punta un dominio al sito.
+- **SMTP**: una volta che hai dominio + email Hostinger configurata, modifica `config.php` e setta `auto_verify_email => false`. L'invio email userà la `mail()` di PHP che funziona out-of-the-box su Hostinger con un dominio reale.
+- **HTTPS**: attivato automaticamente da Hostinger su tutti i sottodomini `.hostingersite.com` e dominio custom (Let's Encrypt).
 
-// Dopo (MySQL hosting):
-$cfg = require __DIR__ . '/config.php';
-$db = new PDO(
-  "mysql:host={$cfg['db_host']};dbname={$cfg['db_name']};charset=utf8mb4",
-  $cfg['db_user'],
-  $cfg['db_pass']
-);
-```
+## Aggiornamenti futuri
 
-## 6. Crea l'utente admin
+Se hai connesso Git: pannello Hostinger → Git → "Deploy" per pullare le ultime modifiche dal repo.
+Se hai usato File Manager: ricarica i file modificati. **Non toccare `config.php`** (è la tua configurazione locale).
 
-Una volta caricato tutto, registrati dal sito e poi su phpMyAdmin esegui:
+## Troubleshooting
 
-```sql
-UPDATE users SET is_admin=1, email_verified=1 WHERE email='tua@email.it';
-```
-
-## 7. Imposta SMTP per le email di verifica
-
-In `api.php`, l'invio email usa `mail()` se `getenv('SMTP_HOST')` è settato. Su Hostinger basta che il dominio abbia un account email — la funzione `mail()` di PHP funziona out-of-the-box.
-
-## 8. HTTPS obbligatorio
-
-Per il PWA installabile (service worker) serve HTTPS. Hostinger fornisce certificato SSL gratuito Let's Encrypt: pannello → **SSL** → attivalo.
-
----
-
-Una volta in produzione, ogni utente che si registra:
-1. Riceve email di verifica
-2. Clicca il link → `email_verified=1`
-3. Login → token Bearer salvato nel browser → mai più password
-4. Aggiunge l'app alla home → app fullscreen
+- **"Connection refused"** all'installer → verifica host (su Hostinger è quasi sempre `localhost`), nome DB e password
+- **"Access denied"** → l'utente DB non ha permessi sul database; ricreane uno nuovo
+- **PWA non installabile su mobile** → serve HTTPS (Hostinger lo dà gratis, attivalo su Domain → SSL)
+- **Email verifica non arrivano** → tieni `auto_verify_email => true` finché non hai un dominio reale; `mail()` PHP non funziona dai sottodomini gratuiti `.hostingersite.com`

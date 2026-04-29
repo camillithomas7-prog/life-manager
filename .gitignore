@@ -1,3 +1,6 @@
+# Configurazione di produzione (mai versionata: contiene password DB)
+config.php
+
 # Database e dati locali (ogni installazione ha i suoi)
 data/life.db
 data/life.db-journal

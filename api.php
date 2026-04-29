@@ -5,9 +5,47 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
-$db = new PDO('sqlite:' . __DIR__ . '/data/life.db');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+function lm_config() {
+  static $cfg = null;
+  if ($cfg !== null) return $cfg;
+  $f = __DIR__ . '/config.php';
+  $cfg = file_exists($f) ? (require $f) : [];
+  return $cfg;
+}
+
+function lm_db() {
+  static $db = null;
+  if ($db !== null) return $db;
+  $cfg = lm_config();
+  $driver = $cfg['db_driver'] ?? 'sqlite';
+
+  if ($driver === 'mysql') {
+    $dsn = "mysql:host={$cfg['db_host']};dbname={$cfg['db_name']};charset=utf8mb4";
+    $db = new PDO($dsn, $cfg['db_user'], $cfg['db_pass'], [
+      PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+      PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+      PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+    ]);
+  } else {
+    if (!is_dir(__DIR__ . '/data')) mkdir(__DIR__ . '/data', 0755, true);
+    $db = new PDO('sqlite:' . __DIR__ . '/data/life.db');
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $db->exec("PRAGMA foreign_keys = ON");
+  }
+  return $db;
+}
+
+function lm_date_ago_sql($days) {
+  $db = lm_db();
+  $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+  $days = (int)$days;
+  return $driver === 'mysql'
+    ? "DATE_SUB(CURDATE(), INTERVAL $days DAY)"
+    : "date('now','-$days days')";
+}
+
+$db = lm_db();
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
@@ -69,7 +107,8 @@ try {
       if ($exists->fetch()) err('Questa email è già registrata');
 
       $vtoken = generateToken();
-      $autoVerify = file_exists(__DIR__ . '/data/dev_mode'); // file flag per auto-verifica in locale
+      $cfg = lm_config();
+      $autoVerify = !empty($cfg['auto_verify_email']) || file_exists(__DIR__ . '/data/dev_mode');
       $hash = password_hash($pwd, PASSWORD_DEFAULT);
       $stmt = $db->prepare("INSERT INTO users (email, password_hash, name, email_verified, verification_token) VALUES (?,?,?,?,?)");
       $stmt->execute([$email, $hash, $name ?: null, $autoVerify ? 1 : 0, $vtoken]);
@@ -312,7 +351,8 @@ try {
       $stmt->execute([$today, $USER_ID]);
       $rows = $stmt->fetchAll();
       foreach ($rows as &$r) {
-        $logs = $db->prepare("SELECT date, done FROM routine_logs WHERE routine_id=? AND date>=date('now','-6 days') ORDER BY date");
+        $ago = lm_date_ago_sql(6);
+        $logs = $db->prepare("SELECT date, done FROM routine_logs WHERE routine_id=? AND date>=$ago ORDER BY date");
         $logs->execute([$r['id']]);
         $r['week'] = $logs->fetchAll();
       }
