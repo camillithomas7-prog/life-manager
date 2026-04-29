@@ -375,16 +375,16 @@ a.btn-link { display: inline-block; margin-top: 16px; padding: 12px 22px; backgr
     <div class="section-title">Database MySQL (Hostinger)</div>
     <div class="field">
       <label>Host</label>
-      <input type="text" name="db_host" value="<?= h($_POST['db_host'] ?? 'localhost') ?>" required>
+      <input type="text" name="db_host" value="<?= h($_POST['db_host'] ?? $_GET['db_host'] ?? 'localhost') ?>" required>
     </div>
     <div class="field">
       <label>Nome database</label>
-      <input type="text" name="db_name" value="<?= h($_POST['db_name'] ?? '') ?>" placeholder="u749757264_applavoro" required>
+      <input type="text" name="db_name" value="<?= h($_POST['db_name'] ?? $_GET['db_name'] ?? '') ?>" placeholder="u749757264_applavoro" required>
     </div>
     <div class="row">
       <div class="field">
         <label>Utente</label>
-        <input type="text" name="db_user" value="<?= h($_POST['db_user'] ?? '') ?>" placeholder="u749757264_applavoro" required>
+        <input type="text" name="db_user" value="<?= h($_POST['db_user'] ?? $_GET['db_user'] ?? '') ?>" placeholder="u749757264_applavoro" required>
       </div>
       <div class="field">
         <label>Password</label>
@@ -395,12 +395,12 @@ a.btn-link { display: inline-block; margin-top: 16px; padding: 12px 22px; backgr
     <div class="section-title">Account admin</div>
     <div class="field">
       <label>Nome</label>
-      <input type="text" name="admin_name" value="<?= h($_POST['admin_name'] ?? '') ?>" placeholder="Thomas">
+      <input type="text" name="admin_name" value="<?= h($_POST['admin_name'] ?? $_GET['admin_name'] ?? '') ?>" placeholder="Thomas">
     </div>
     <div class="row">
       <div class="field">
         <label>Email</label>
-        <input type="email" name="admin_email" value="<?= h($_POST['admin_email'] ?? '') ?>" required>
+        <input type="email" name="admin_email" value="<?= h($_POST['admin_email'] ?? $_GET['admin_email'] ?? '') ?>" required>
       </div>
       <div class="field">
         <label>Password (min 6)</label>
