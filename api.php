@@ -53,6 +53,9 @@ $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 function ok($data = []) { echo json_encode(['ok' => true] + (is_array($data) ? $data : ['data' => $data])); exit; }
 function err($msg, $code = 400) { http_response_code($code); echo json_encode(['ok' => false, 'error' => $msg]); exit; }
 
+// Helper: ritorna il valore se non vuoto, altrimenti null (no warning per chiave mancante)
+function nv($a, $k) { return (isset($a[$k]) && $a[$k] !== '') ? $a[$k] : null; }
+
 function getBearerToken() {
   $h = '';
   if (function_exists('getallheaders')) {
@@ -315,13 +318,23 @@ try {
     }
 
     case 'task_save': {
+      $em = (int)($input['estimated_minutes'] ?? 30);
+      $sd = !empty($input['scheduled_date']) ? $input['scheduled_date'] : null;
+      $ss = !empty($input['scheduled_start']) ? $input['scheduled_start'] : null;
+      $se = $input['scheduled_end'] ?? null;
+      // Auto-calc scheduled_end se ho data+inizio ma non fine
+      if ($sd && $ss && !$se) {
+        list($h, $m) = array_map('intval', explode(':', $ss));
+        $endMin = $h * 60 + $m + max(15, $em);
+        $se = sprintf('%02d:%02d', floor($endMin/60) % 24, $endMin % 60);
+      }
       if (!empty($input['id'])) {
-        $stmt = $db->prepare("UPDATE tasks SET project_id=?, title=?, notes=?, priority=?, status=?, due_date=?, estimated_minutes=? WHERE id=? AND user_id=?");
-        $stmt->execute([$input['project_id']?:null, $input['title'], $input['notes']??'', $input['priority']??3, $input['status']??'todo', $input['due_date']?:null, $input['estimated_minutes']??30, $input['id'], $USER_ID]);
+        $stmt = $db->prepare("UPDATE tasks SET project_id=?, title=?, notes=?, priority=?, status=?, due_date=?, estimated_minutes=?, scheduled_date=?, scheduled_start=?, scheduled_end=? WHERE id=? AND user_id=?");
+        $stmt->execute([nv($input,'project_id'), $input['title'], $input['notes']??'', $input['priority']??3, $input['status']??'todo', nv($input,'due_date'), $em, $sd, $ss, $se, $input['id'], $USER_ID]);
         ok(['id' => $input['id']]);
       } else {
-        $stmt = $db->prepare("INSERT INTO tasks (user_id, project_id, title, notes, priority, due_date, estimated_minutes) VALUES (?,?,?,?,?,?,?)");
-        $stmt->execute([$USER_ID, $input['project_id']?:null, $input['title'], $input['notes']??'', $input['priority']??3, $input['due_date']?:null, $input['estimated_minutes']??30]);
+        $stmt = $db->prepare("INSERT INTO tasks (user_id, project_id, title, notes, priority, due_date, estimated_minutes, scheduled_date, scheduled_start, scheduled_end) VALUES (?,?,?,?,?,?,?,?,?,?)");
+        $stmt->execute([$USER_ID, nv($input,'project_id'), $input['title'], $input['notes']??'', $input['priority']??3, nv($input,'due_date'), $em, $sd, $ss, $se]);
         ok(['id' => $db->lastInsertId()]);
       }
     }
@@ -408,11 +421,11 @@ try {
     case 'event_save': {
       if (!empty($input['id'])) {
         $stmt = $db->prepare("UPDATE events SET title=?, description=?, start_date=?, start_time=?, end_date=?, end_time=?, category=?, project_id=? WHERE id=? AND user_id=?");
-        $stmt->execute([$input['title'], $input['description']??'', $input['start_date'], $input['start_time']??null, $input['end_date']?:null, $input['end_time']?:null, $input['category']??'', $input['project_id']?:null, $input['id'], $USER_ID]);
+        $stmt->execute([$input['title'], $input['description']??'', $input['start_date'], $input['start_time']??null, nv($input,'end_date'), nv($input,'end_time'), $input['category']??'', nv($input,'project_id'), $input['id'], $USER_ID]);
         ok(['id' => $input['id']]);
       } else {
         $stmt = $db->prepare("INSERT INTO events (user_id, title, description, start_date, start_time, end_date, end_time, category, project_id) VALUES (?,?,?,?,?,?,?,?,?)");
-        $stmt->execute([$USER_ID, $input['title'], $input['description']??'', $input['start_date'], $input['start_time']??null, $input['end_date']?:null, $input['end_time']?:null, $input['category']??'', $input['project_id']?:null]);
+        $stmt->execute([$USER_ID, $input['title'], $input['description']??'', $input['start_date'], $input['start_time']??null, nv($input,'end_date'), nv($input,'end_time'), $input['category']??'', nv($input,'project_id')]);
         ok(['id' => $db->lastInsertId()]);
       }
     }
@@ -456,11 +469,11 @@ try {
     case 'goal_save': {
       if (!empty($input['id'])) {
         $stmt = $db->prepare("UPDATE goals SET title=?, description=?, target_value=?, current_value=?, unit=?, deadline=?, category=?, status=? WHERE id=? AND user_id=?");
-        $stmt->execute([$input['title'], $input['description']??'', $input['target_value']??0, $input['current_value']??0, $input['unit']??'', $input['deadline']?:null, $input['category']??'', $input['status']??'attivo', $input['id'], $USER_ID]);
+        $stmt->execute([$input['title'], $input['description']??'', $input['target_value']??0, $input['current_value']??0, $input['unit']??'', nv($input,'deadline'), $input['category']??'', $input['status']??'attivo', $input['id'], $USER_ID]);
         ok(['id' => $input['id']]);
       } else {
         $stmt = $db->prepare("INSERT INTO goals (user_id, title, description, target_value, current_value, unit, deadline, category) VALUES (?,?,?,?,?,?,?,?)");
-        $stmt->execute([$USER_ID, $input['title'], $input['description']??'', $input['target_value']??0, $input['current_value']??0, $input['unit']??'', $input['deadline']?:null, $input['category']??'']);
+        $stmt->execute([$USER_ID, $input['title'], $input['description']??'', $input['target_value']??0, $input['current_value']??0, $input['unit']??'', nv($input,'deadline'), $input['category']??'']);
         ok(['id' => $db->lastInsertId()]);
       }
     }
@@ -486,11 +499,11 @@ try {
     case 'finance_save': {
       if (!empty($input['id'])) {
         $stmt = $db->prepare("UPDATE finances SET type=?, amount=?, description=?, category=?, project_id=?, date=? WHERE id=? AND user_id=?");
-        $stmt->execute([$input['type'], $input['amount'], $input['description']??'', $input['category']??'', $input['project_id']?:null, $input['date'], $input['id'], $USER_ID]);
+        $stmt->execute([$input['type'], $input['amount'], $input['description']??'', $input['category']??'', nv($input,'project_id'), $input['date'], $input['id'], $USER_ID]);
         ok();
       } else {
         $stmt = $db->prepare("INSERT INTO finances (user_id, type, amount, description, category, project_id, date) VALUES (?,?,?,?,?,?,?)");
-        $stmt->execute([$USER_ID, $input['type'], $input['amount'], $input['description']??'', $input['category']??'', $input['project_id']?:null, $input['date']]);
+        $stmt->execute([$USER_ID, $input['type'], $input['amount'], $input['description']??'', $input['category']??'', nv($input,'project_id'), $input['date']]);
         ok(['id' => $db->lastInsertId()]);
       }
     }

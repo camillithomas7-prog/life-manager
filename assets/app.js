@@ -567,7 +567,7 @@ function renderProjects() {
   const list = state.projects.filter(p => filter === 'all' || p.status === filter);
   const grid = document.getElementById('projectsGrid');
   grid.innerHTML = list.length ? list.map(p => `
-    <div class="project-card">
+    <div class="project-card" onclick="openProjectDetails(${p.id})">
       <div class="project-bar" style="background:${p.color}"></div>
       <div class="project-card-body">
         <div class="project-card-head">
@@ -576,15 +576,86 @@ function renderProjects() {
         </div>
         <div class="project-desc">${escapeHtml(p.description||'')}</div>
         ${p.next_action ? `<div class="project-next"><b>Prossima azione</b>${escapeHtml(p.next_action)}</div>` : ''}
-        <div class="project-actions">
-          ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank">🔗 Apri</a>` : ''}
-          ${p.path ? `<a onclick="navigator.clipboard.writeText('${escapeHtml(p.path)}');toast('Percorso copiato')">📁 Copia path</a>` : ''}
-          <button class="icon-btn" onclick="openProjectModal(${p.id})" style="margin-left:auto">✎</button>
-          <button class="icon-btn danger" onclick="archiveProject(${p.id})">🗑</button>
+        <div class="project-actions" onclick="event.stopPropagation()">
+          ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" onclick="event.stopPropagation()">🔗 Apri</a>` : ''}
+          ${p.path ? `<a onclick="event.stopPropagation();navigator.clipboard.writeText('${escapeHtml(p.path)}');toast('Percorso copiato')">📁 Copia path</a>` : ''}
+          <button class="icon-btn" onclick="event.stopPropagation();openProjectModal(${p.id})" style="margin-left:auto">✎</button>
+          <button class="icon-btn danger" onclick="event.stopPropagation();archiveProject(${p.id})">🗑</button>
         </div>
       </div>
     </div>
   `).join('') : `<div class="empty"><div class="empty-icon">📁</div>Nessun progetto. Tocca + Nuovo per aggiungere.</div>`;
+}
+
+async function openProjectDetails(id) {
+  const project = state.projects.find(p => p.id === id);
+  if (!project) return;
+  const r = await api('tasks_list', { filter: 'all', project_id: id });
+  const tasks = r.data || [];
+  const open = tasks.filter(t => t.status !== 'done');
+  const done = tasks.filter(t => t.status === 'done');
+
+  const taskRow = t => {
+    const due = t.due_date ? new Date(t.due_date) : null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dueClass = due ? (due < today && t.status !== 'done' ? 'overdue' : '') : '';
+    return `
+      <div class="task-item ${t.status==='done'?'done':''}">
+        <div class="task-check ${t.status==='done'?'done':''}" onclick="event.stopPropagation();toggleTaskInProject(${t.id}, ${id})"></div>
+        <div class="task-body" onclick="closeModal();openTaskModal(${t.id})">
+          <div class="task-title">${escapeHtml(t.title)}</div>
+          <div class="task-meta">
+            ${t.scheduled_date ? `<span class="task-tag">📅 ${relativeDay(t.scheduled_date)}${t.scheduled_start?' '+t.scheduled_start:''}</span>` : (t.due_date ? `<span class="task-due ${dueClass}">📅 entro ${relativeDay(t.due_date)}</span>` : '')}
+            <span class="task-tag">${fmtDuration(t.estimated_minutes||30)}</span>
+            <span class="priority-badge priority-${t.priority}">P${t.priority}</span>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="icon-btn" onclick="event.stopPropagation();closeModal();openTaskModal(${t.id})">✎</button>
+          <button class="icon-btn danger" onclick="event.stopPropagation();deleteTaskInProject(${t.id}, ${id})">🗑</button>
+        </div>
+      </div>
+    `;
+  };
+
+  showModal(escapeHtml(project.name), `
+    <div class="project-detail">
+      <div class="project-detail-bar" style="background:${project.color}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="status-badge status-${project.status}">${project.status}</span>
+          ${project.category ? `<span style="font-size:12px;color:var(--text-muted);margin-left:8px">${escapeHtml(project.category)}</span>` : ''}
+        </div>
+        <button class="btn ghost sm" onclick="closeModal();openProjectModal(${id})">Modifica progetto</button>
+      </div>
+      ${project.description ? `<p style="font-size:13.5px;color:var(--text-muted);margin-bottom:14px">${escapeHtml(project.description)}</p>` : ''}
+      ${project.next_action ? `<div class="project-next" style="margin-bottom:16px"><b>Prossima azione</b>${escapeHtml(project.next_action)}</div>` : ''}
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px">
+        <h4 style="font-size:14px;font-weight:600">Attività del progetto</h4>
+        <button class="btn primary sm" onclick="closeModal();openTaskModal(null, { project_id: ${id} })">+ Nuova</button>
+      </div>
+
+      ${open.length ? `<div class="task-list">${open.map(taskRow).join('')}</div>` : '<div class="empty" style="padding:20px 0">Nessuna attività aperta.</div>'}
+
+      ${done.length ? `<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--text-muted);font-size:13px;padding:8px 0">Completate (${done.length})</summary><div class="task-list">${done.map(taskRow).join('')}</div></details>` : ''}
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeModal()">Chiudi</button>
+    </div>
+  `);
+}
+
+async function toggleTaskInProject(taskId, projectId) {
+  await api('task_toggle', { id: taskId }, 'POST');
+  openProjectDetails(projectId);
+}
+
+async function deleteTaskInProject(taskId, projectId) {
+  if (!confirm('Eliminare questa attività?')) return;
+  await api('task_delete', { id: taskId }, 'POST');
+  toast('Eliminata');
+  openProjectDetails(projectId);
 }
 
 async function archiveProject(id) {
@@ -831,10 +902,14 @@ function showModal(title, html) {
 function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 
-async function openTaskModal(id) {
+async function openTaskModal(id, defaults = {}) {
   const projectsR = await api('projects_list');
   const projects = projectsR.data || [];
-  let task = { title: '', notes: '', project_id: '', priority: 3, due_date: '', status: 'todo', estimated_minutes: 30 };
+  let task = {
+    title: '', notes: '', project_id: defaults.project_id || '',
+    priority: 3, due_date: '', status: 'todo', estimated_minutes: 30,
+    scheduled_date: defaults.scheduled_date || '', scheduled_start: ''
+  };
   if (id) {
     const r = await api('tasks_list', { filter: 'all' });
     task = (r.data || []).find(t => t.id === id) || task;
@@ -848,7 +923,7 @@ async function openTaskModal(id) {
         <div class="field"><label>Priorità</label><select name="priority"><option value="1" ${task.priority==1?'selected':''}>P1 — Critica</option><option value="2" ${task.priority==2?'selected':''}>P2 — Alta</option><option value="3" ${task.priority==3?'selected':''}>P3 — Media</option><option value="4" ${task.priority==4?'selected':''}>P4 — Bassa</option></select></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Scadenza</label><input type="date" name="due_date" value="${task.due_date||''}"></div>
+        <div class="field"><label>Scadenza entro</label><input type="date" name="due_date" value="${task.due_date||''}"></div>
         <div class="field"><label>Durata stimata</label><select name="estimated_minutes">
           <option value="15" ${task.estimated_minutes==15?'selected':''}>15 min</option>
           <option value="30" ${task.estimated_minutes==30?'selected':''}>30 min</option>
@@ -860,6 +935,12 @@ async function openTaskModal(id) {
           <option value="240" ${task.estimated_minutes==240?'selected':''}>4 ore</option>
         </select></div>
       </div>
+      <div class="field-divider">Pianifica subito (opzionale)</div>
+      <div class="field-row">
+        <div class="field"><label>Quando</label><input type="date" name="scheduled_date" value="${task.scheduled_date||''}"></div>
+        <div class="field"><label>Ora inizio</label><input type="time" name="scheduled_start" value="${task.scheduled_start||''}"></div>
+      </div>
+      <div class="field-hint">Se imposti data e orario, la task appare sulla timeline di "Oggi" all'orario scelto.</div>
     </form>
     <div class="modal-foot">
       ${id?`<button class="btn danger" style="margin-right:auto" onclick="deleteTask(${id});closeModal()">Elimina</button>`:''}
