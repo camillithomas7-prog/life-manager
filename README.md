@@ -1,3 +1,7 @@
+## Live
+
+🌐 https://aquamarine-dogfish-804095.hostingersite.com (auto-deploy attivo via webhook GitHub → Hostinger)
+
 # Life Manager
 
 PWA multi-utente per organizzare progetti, attività, ritmi giornalieri e finanze.
