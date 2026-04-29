@@ -58,10 +58,59 @@ Login con l'email/password admin. Dalla home può registrarsi chiunque (con auto
 - **SMTP**: una volta che hai dominio + email Hostinger configurata, modifica `config.php` e setta `auto_verify_email => false`. L'invio email userà la `mail()` di PHP che funziona out-of-the-box su Hostinger con un dominio reale.
 - **HTTPS**: attivato automaticamente da Hostinger su tutti i sottodomini `.hostingersite.com` e dominio custom (Let's Encrypt).
 
-## Aggiornamenti futuri
+## Auto-deploy GitHub → Hostinger (push automatico)
 
-Se hai connesso Git: pannello Hostinger → Git → "Deploy" per pullare le ultime modifiche dal repo.
-Se hai usato File Manager: ricarica i file modificati. **Non toccare `config.php`** (è la tua configurazione locale).
+L'installer ha già generato un `webhook_secret` e configurato `deploy.php` come endpoint webhook.
+Devi solo collegarli su GitHub:
+
+### 1. Recupera il secret
+Lo trovi al termine dell'installazione (schermo finale di `install.php`) oppure dentro `config.php` sul server:
+```php
+'webhook_secret' => 'xxxxxxxx...',
+```
+
+### 2. Aggiungi il webhook su GitHub
+Vai su: **https://github.com/camillithomas7-prog/life-manager/settings/hooks/new**
+
+Compila:
+| Campo | Valore |
+|---|---|
+| **Payload URL** | `https://aquamarine-dogfish-804095.hostingersite.com/deploy.php` |
+| **Content type** | `application/json` |
+| **Secret** | il valore di `webhook_secret` |
+| **SSL verification** | enable |
+| **Which events?** | Just the push event |
+| **Active** | ✓ |
+
+Click **Add webhook**.
+
+### 3. Verifica il ping
+GitHub invia un evento `ping` automaticamente. Vai su Settings → Webhooks → click sul webhook → tab **Recent Deliveries**: deve essere ✓ verde con response `pong`.
+
+Da ora in poi, ogni `git push` su `main`:
+1. GitHub manda webhook a `deploy.php`
+2. `deploy.php` verifica firma HMAC
+3. Esegue `git pull` sulla cartella del sito
+4. Logga in `data/deploy.log`
+
+### Test manuale
+Modifica un file qualsiasi in locale, poi:
+```bash
+git add . && git commit -m "test deploy" && git push
+```
+Entro pochi secondi il sito è aggiornato. Verifica su Hostinger File Manager → `data/deploy.log`.
+
+### Troubleshooting auto-deploy
+- **GitHub mostra 401** → secret nel webhook diverso da `config.php`
+- **GitHub mostra 503** → `config.php` mancante o `webhook_secret` vuoto
+- **Webhook risponde "shell_exec disabled"** → contatta supporto Hostinger per abilitarlo, oppure usa il deploy manuale (Hostinger → Git → Deploy)
+- **`git pull` fallisce con "permission denied"** → la cartella del sito non è un repo git. Devi clonarla con il Git integration di Hostinger, non caricarla via File Manager.
+
+## Aggiornamenti manuali (alternativa)
+
+Se preferisci controllare quando aggiornare:
+- **Con Git integration**: pannello Hostinger → Git → click su "Deploy" quando vuoi pullare
+- **Con File Manager**: ricarica i file modificati a mano. **Non toccare `config.php`**.
 
 ## Troubleshooting
 

@@ -6,6 +6,7 @@ data/life.db
 data/life.db-journal
 data/verifications.log
 data/dev_mode
+data/deploy.log
 
 # Log
 *.log

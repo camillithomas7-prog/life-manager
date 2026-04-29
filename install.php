@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === '2') {
     'db_pass' => $_POST['db_pass'],
     'auto_verify_email' => !empty($_POST['auto_verify']),
     'app_url' => trim($_POST['app_url'] ?? ''),
+    'webhook_secret' => bin2hex(random_bytes(20)),
+    'deploy_branch' => 'refs/heads/main',
     'installed' => true,
   ];
   $admin = [
@@ -278,6 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === '2') {
 
       $done = true;
       $adminEmail = $admin['email'];
+      $webhookSecret = $cfg['webhook_secret'];
     } catch (Exception $e) {
       $err = "Errore: " . $e->getMessage();
     }
@@ -325,8 +328,38 @@ a.btn-link { display: inline-block; margin-top: 16px; padding: 12px 22px; backgr
   <p class="muted">Database creato, tabelle inizializzate, admin attivo.</p>
   <div class="ok">
     <b>Admin:</b> <?= h($adminEmail) ?><br>
-    <b>Database:</b> <?= h($_POST['db_name']) ?><br>
-    <small>Per sicurezza, elimina questo file (<code>install.php</code>) dal server tramite il File Manager di Hostinger.</small>
+    <b>Database:</b> <?= h($_POST['db_name']) ?>
+  </div>
+
+  <div class="section-title">Auto-deploy GitHub → Hostinger</div>
+  <p class="muted" style="margin-bottom:14px;font-size:13px">
+    Configura il webhook su GitHub così ogni push su <code>main</code> aggiorna automaticamente il sito.
+  </p>
+  <div style="background:#fbfaf6;border:1px solid #ece8de;border-radius:10px;padding:14px;font-size:13px;margin-bottom:14px">
+    <b style="display:block;margin-bottom:8px">1. Vai su GitHub:</b>
+    <code style="display:block;background:#fff;padding:8px;border-radius:6px;margin-bottom:12px;word-break:break-all">https://github.com/camillithomas7-prog/life-manager/settings/hooks/new</code>
+    <b style="display:block;margin-bottom:8px">2. Compila i campi:</b>
+    <div style="background:#fff;padding:10px;border-radius:6px;margin-bottom:6px">
+      <small style="color:#6b7280">Payload URL</small><br>
+      <code style="font-size:12px;word-break:break-all"><?= h(($cfg['app_url'] ?: 'https://' . ($_SERVER['HTTP_HOST'] ?? '')) . '/deploy.php') ?></code>
+    </div>
+    <div style="background:#fff;padding:10px;border-radius:6px;margin-bottom:6px">
+      <small style="color:#6b7280">Content type</small><br>
+      <code style="font-size:12px">application/json</code>
+    </div>
+    <div style="background:#fff;padding:10px;border-radius:6px;margin-bottom:6px">
+      <small style="color:#6b7280">Secret (copia esatto)</small><br>
+      <code style="font-size:12px;word-break:break-all" id="ws"><?= h($webhookSecret) ?></code>
+      <button onclick="navigator.clipboard.writeText(document.getElementById('ws').textContent);this.textContent='✓ Copiato'" style="float:right;margin-top:-2px;background:#4f46e5;color:#fff;border:0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px">Copia</button>
+    </div>
+    <div style="background:#fff;padding:10px;border-radius:6px">
+      <small style="color:#6b7280">Events</small><br>
+      <code style="font-size:12px">Just the push event</code>
+    </div>
+  </div>
+
+  <div class="err" style="background:#fef3c7;color:#92400e;border-radius:10px">
+    <b>⚠ Sicurezza:</b> elimina <code>install.php</code> dal server (File Manager Hostinger → Delete) appena hai finito.
   </div>
   <a class="btn-link" href="/">Apri Life Manager →</a>
 
