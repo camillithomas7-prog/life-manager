@@ -3,7 +3,7 @@
 // 1. Disinstalla TUTTI i service worker
 // 2. Svuota TUTTE le cache
 // 3. Hard reload bypass cache
-const APP_BUILD = 'v11';  // visualizzato in UI, aggiornato ad ogni release
+const APP_BUILD = 'v12';  // visualizzato in UI, aggiornato ad ogni release
 
 async function checkAppVersion() {
   try {
@@ -587,21 +587,30 @@ function renderProjects() {
   const list = state.projects.filter(p => filter === 'all' || p.status === filter);
   const grid = document.getElementById('projectsGrid');
   grid.innerHTML = list.length ? list.map(p => `
-    <div class="project-card" onclick="openProjectDetails(${p.id})">
+    <div class="project-card">
       <div class="project-bar" style="background:${p.color}"></div>
-      <div class="project-card-body">
+      <div class="project-card-body" onclick="openProjectDetails(${p.id})">
         <div class="project-card-head">
           <div><div class="project-name">${escapeHtml(p.name)}</div><div class="project-cat">${escapeHtml(p.category||'—')}</div></div>
           <span class="status-badge status-${p.status}">${p.status}</span>
         </div>
         <div class="project-desc">${escapeHtml(p.description||'')}</div>
         ${p.next_action ? `<div class="project-next"><b>Prossima azione</b>${escapeHtml(p.next_action)}</div>` : ''}
-        <div class="project-actions" onclick="event.stopPropagation()">
-          ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" onclick="event.stopPropagation()">🔗 Apri</a>` : ''}
-          ${p.path ? `<a onclick="event.stopPropagation();navigator.clipboard.writeText('${escapeHtml(p.path)}');toast('Percorso copiato')">📁 Copia path</a>` : ''}
-          <button class="icon-btn" onclick="event.stopPropagation();openProjectModal(${p.id})" style="margin-left:auto">✎</button>
-          <button class="icon-btn danger" onclick="event.stopPropagation();archiveProject(${p.id})">🗑</button>
+        <div class="project-tasks-summary">
+          <span class="pts-stat"><b>${p.open_tasks||0}</b> da fare</span>
+          <span class="pts-stat done"><b>${p.done_tasks||0}</b> fatte</span>
+          <span class="pts-arrow">Tocca per vedere →</span>
         </div>
+      </div>
+      <div class="project-cta-row">
+        <button class="btn primary sm cta-add-task" onclick="event.stopPropagation();openTaskModal(null,{project_id:${p.id}})">+ Nuova task</button>
+        <button class="btn ghost sm" onclick="event.stopPropagation();openProjectDetails(${p.id})">Vedi tutte (${(p.open_tasks||0) + (p.done_tasks||0)})</button>
+      </div>
+      <div class="project-actions" onclick="event.stopPropagation()">
+        ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank">🔗 Apri</a>` : ''}
+        ${p.path ? `<a onclick="navigator.clipboard.writeText('${escapeHtml(p.path)}');toast('Percorso copiato')">📁 Copia path</a>` : ''}
+        <button class="icon-btn" onclick="openProjectModal(${p.id})" style="margin-left:auto" title="Modifica progetto">✎</button>
+        <button class="icon-btn danger" onclick="archiveProject(${p.id})" title="Archivia">🗑</button>
       </div>
     </div>
   `).join('') : `<div class="empty"><div class="empty-icon">📁</div>Nessun progetto. Tocca + Nuovo per aggiungere.</div>`;

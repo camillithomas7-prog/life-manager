@@ -273,7 +273,10 @@ try {
 
     // ============= PROJECTS =============
     case 'projects_list': {
-      $stmt = $db->prepare("SELECT * FROM projects WHERE user_id=? AND archived=0 ORDER BY priority ASC, name ASC");
+      $stmt = $db->prepare("SELECT p.*,
+        (SELECT COUNT(*) FROM tasks WHERE project_id=p.id AND user_id=p.user_id AND status!='done') AS open_tasks,
+        (SELECT COUNT(*) FROM tasks WHERE project_id=p.id AND user_id=p.user_id AND status='done') AS done_tasks
+        FROM projects p WHERE p.user_id=? AND p.archived=0 ORDER BY p.priority ASC, p.name ASC");
       $stmt->execute([$USER_ID]);
       ok(['data' => $stmt->fetchAll()]);
     }

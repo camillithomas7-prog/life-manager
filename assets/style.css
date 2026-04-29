@@ -556,7 +556,43 @@ input, textarea, select { font-family: inherit; font-size: 14px; }
 .project-actions a:hover { background: var(--primary-soft); }
 .project-actions .icon-btn { margin-left: auto; }
 
-.project-card { cursor: pointer; }
+.project-card { cursor: default; }
+.project-card .project-card-body { cursor: pointer; }
+.project-tasks-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+.pts-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+.pts-stat b { color: var(--text); font-weight: 700; }
+.pts-stat.done { background: var(--success-soft); color: var(--success); }
+.pts-stat.done b { color: var(--success); }
+.pts-arrow {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--primary);
+  font-weight: 600;
+}
+.project-cta-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px 0;
+}
+.project-cta-row .btn { flex: 1; }
+.cta-add-task { font-weight: 700; }
 .project-detail { padding: 4px 0; }
 .project-detail-bar {
   height: 4px;
